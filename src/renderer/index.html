@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Lumen</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="identity"><span class="mark" aria-hidden="true"><span></span></span><div><strong>LUMEN</strong><small>DISPLAY BRIGHTNESS</small></div></div>
+    <div class="top-actions"><span class="live-dot" title="Running in the tray"></span><button id="refresh" class="icon-button" title="Refresh displays" aria-label="Refresh displays">↻</button><button id="close" class="icon-button close-button" title="Close popup" aria-label="Close popup">×</button></div>
+  </header>
+  <nav class="tabs" aria-label="Sections"><button class="tab active" data-tab="now">NOW</button><button class="tab" data-tab="schedule">SCHEDULES <span id="schedule-count">0</span></button></nav>
+  <main>
+    <section id="now-panel" class="panel">
+      <div class="section-head"><span>DISPLAYS</span><span id="display-count">—</span></div>
+      <div id="monitor-list" class="monitor-list"></div>
+      <div id="empty-state" class="empty-state hidden">No adjustable displays found.<br><span>Check that DDC/CI is enabled in your monitor menu, then refresh.</span></div>
+      <div class="section-head action-heading"><span>MAKE A CHANGE</span><span>01 / 02</span></div>
+      <div class="action-box">
+        <div class="field-top"><label for="target-number">TARGET BRIGHTNESS</label><select id="scope" aria-label="Display"></select></div>
+        <div class="target-line"><input id="target-number" type="number" min="0" max="100" value="70" aria-label="Target brightness"><span>%</span><div class="target-note">STARTS FROM<br>CURRENT LEVEL</div></div>
+        <input id="target-slider" class="range target-range" type="range" min="0" max="100" value="70" aria-label="Target brightness slider">
+        <div class="divider"></div>
+        <div class="field-top"><label>REACH TARGET IN</label><span class="minor">0 = INSTANT</span></div>
+        <div class="duration-row" role="group" aria-label="Duration">
+          <button data-minutes="0">NOW</button><button data-minutes="15" class="selected">15M</button><button data-minutes="30">30M</button><button data-minutes="60">1H</button><button data-minutes="custom">OTHER</button>
+        </div>
+        <div id="custom-duration" class="custom-duration hidden"><input id="minutes" type="number" min="1" max="1440" value="90" aria-label="Custom duration in minutes"><span>MINUTES · MAX 24 HOURS</span></div>
+        <div id="curve-block"><div class="field-top curve-head"><label>CHANGE CURVE</label><span class="minor">HOW IT GETS THERE</span></div>
+          <div class="curve-row" role="group" aria-label="Change curve">
+            <button data-curve="linear" class="selected"><svg viewBox="0 0 40 24"><path d="M3 21 L37 3"/></svg><span>EVEN</span></button>
+            <button data-curve="front"><svg viewBox="0 0 40 24"><path d="M3 21 C7 5 17 3 37 3"/></svg><span>EARLY</span></button>
+            <button data-curve="late"><svg viewBox="0 0 40 24"><path d="M3 21 C24 21 34 19 37 3"/></svg><span>LATE</span></button>
+          </div>
+        </div>
+        <div id="action-summary" class="summary"></div>
+        <button id="start" class="primary-button">START TRANSITION <span>↗</span></button>
+      </div>
+      <div id="active-ramp" class="active-ramp hidden"></div>
+    </section>
+    <section id="schedule-panel" class="panel hidden">
+      <div class="section-head"><span>YOUR SCHEDULES</span><span id="next-caption">LOCAL TIME</span></div>
+      <div id="schedule-list" class="schedule-list"></div>
+      <div class="section-head action-heading"><span>NEW SCHEDULE</span><span>02 / 02</span></div>
+      <form id="schedule-form" class="schedule-form">
+        <div class="form-grid"><label>TARGET <span>%</span><input id="schedule-target" type="number" min="0" max="100" required value="30"></label><label>REACH IN <span>MIN</span><input id="schedule-minutes" type="number" min="0" max="1440" required value="30"></label></div>
+        <div class="form-grid"><label>DISPLAY<select id="schedule-scope"></select></label><label>CURVE<select id="schedule-curve"><option value="linear">Even</option><option value="front">Early change</option><option value="late">Late change</option></select></label></div>
+        <div class="form-label">START</div>
+        <div class="mode-row"><button type="button" data-mode="repeat" class="selected">REPEAT</button><button type="button" data-mode="once">ONE TIME</button></div>
+        <div id="repeat-fields"><input id="schedule-time" type="time" value="23:00" required aria-label="Start time"><div class="weekdays" role="group" aria-label="Repeat days"><button type="button" data-day="1" class="selected">M</button><button type="button" data-day="2" class="selected">T</button><button type="button" data-day="3" class="selected">W</button><button type="button" data-day="4" class="selected">T</button><button type="button" data-day="5" class="selected">F</button><button type="button" data-day="6" class="selected">S</button><button type="button" data-day="0" class="selected">S</button></div></div>
+        <div id="once-fields" class="hidden"><input id="schedule-date" type="datetime-local" aria-label="Start date and time"></div>
+        <p class="form-help">The transition starts at this time, using the brightness then as its starting point.</p>
+        <button class="primary-button" type="submit">SAVE SCHEDULE <span>↗</span></button>
+      </form>
+    </section>
+  </main>
+  <div id="toast" role="status" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>

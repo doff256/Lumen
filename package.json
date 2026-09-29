@@ -1,0 +1,27 @@
+{
+  "name": "lumen-brightness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A precise Windows tray brightness controller with timed ramps and schedules",
+  "author": "Lumen",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder --win portable zip"
+  },
+  "devDependencies": {
+    "electron": "44.4.5",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "app.lumen.brightness",
+    "productName": "Lumen",
+    "asar": true,
+    "asarUnpack": ["src/monitor/bridge.ps1"],
+    "compression": "normal",
+    "files": ["src/**/*", "assets/**/*", "package.json"],
+    "win": { "target": ["portable", "zip"], "icon": "assets/icon.ico", "signAndEditExecutable": false },
+    "portable": { "artifactName": "Lumen-${version}-portable.exe" }
+  }
+}
