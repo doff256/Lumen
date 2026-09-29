@@ -3,9 +3,11 @@
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
 let state = { monitors: [], ramps: [], schedules: [] };
-let duration = 15, curve = 'linear', mode = 'repeat', toastTimer;
+let duration = 15, curve = 'perceptual', mode = 'repeat', toastTimer;
 let monitorSignature = '', scheduleSignature = '', dragging = false;
 let previousError = null;
+const curveName = name => ({ linear: 'linear', perceptual: 'perceptual', front: 'early', late: 'late' })[name] || name;
+let settingsLoaded = false;
 
 function toast(message) {
   const el = $('#toast'); el.textContent = message; el.classList.remove('hidden');
@@ -31,6 +33,25 @@ function updateScopes() {
   }
 }
 
+function bindLiveSlider(input, value, monitorId) {
+  let timer, pending, running = false, last = 0;
+  async function flush() {
+    clearTimeout(timer);
+    if (running || pending === undefined) return;
+    const target = pending; pending = undefined; running = true; last = Date.now();
+    await call(window.lumen.set({ monitorId, target, calibrated: monitorId !== 'all' }));
+    running = false;
+    if (pending !== undefined) timer = setTimeout(flush, Math.max(0, 125 - (Date.now() - last)));
+  }
+  input.addEventListener('pointerdown', () => { dragging = true; });
+  for (const event of ['pointerup', 'pointercancel', 'blur']) input.addEventListener(event, () => { dragging = false; });
+  input.addEventListener('input', () => {
+    value.firstChild.textContent = input.value; setFill(input);
+    pending = Number(input.value);
+    clearTimeout(timer); timer = setTimeout(flush, Math.max(0, 125 - (Date.now() - last)));
+  });
+}
+
 function renderMonitors() {
   const signature = state.monitors.map(m => `${m.id}|${m.name}`).join(';');
   if (signature !== monitorSignature) {
@@ -46,10 +67,7 @@ function renderMonitors() {
       const value = document.createElement('div'); value.className = 'monitor-value'; value.innerHTML = '0<span>%</span>';
       head.append(name, value);
       const input = document.createElement('input'); input.className = 'range'; input.type = 'range'; input.min = 0; input.max = 100; input.setAttribute('aria-label', `${monitor.name} brightness`);
-      input.addEventListener('pointerdown', () => dragging = true);
-      input.addEventListener('pointerup', () => dragging = false);
-      input.addEventListener('input', () => { value.firstChild.textContent = input.value; setFill(input); });
-      input.addEventListener('change', () => call(window.lumen.set({ monitorId: monitor.id, target: Number(input.value) })));
+      bindLiveSlider(input, value, monitor.id);
       row.append(head, input); list.append(row);
     }
     if (state.monitors.length > 1) {
@@ -60,10 +78,7 @@ function renderMonitors() {
       const value = document.createElement('div'); value.className = 'monitor-value'; value.innerHTML = '0<span>%</span>';
       head.append(name, value);
       const input = document.createElement('input'); input.className = 'range'; input.type = 'range'; input.min = 0; input.max = 100; input.setAttribute('aria-label', 'All displays brightness');
-      input.addEventListener('pointerdown', () => dragging = true);
-      input.addEventListener('pointerup', () => dragging = false);
-      input.addEventListener('input', () => { value.firstChild.textContent = input.value; setFill(input); });
-      input.addEventListener('change', () => call(window.lumen.set({ monitorId: 'all', target: Number(input.value) })));
+      bindLiveSlider(input, value, 'all');
       row.append(head, input); list.append(row);
     }
   }
@@ -73,10 +88,10 @@ function renderMonitors() {
     const row = [...$$('.monitor')].find(el => el.dataset.id === monitor.id);
     if (!row) continue;
     const input = row.querySelector('input');
-    if (!dragging) { input.value = monitor.brightness; row.querySelector('.monitor-value').firstChild.textContent = monitor.brightness; setFill(input); }
+    if (!dragging && document.activeElement !== input) { input.value = monitor.brightness; row.querySelector('.monitor-value').firstChild.textContent = monitor.brightness; setFill(input); }
   }
   const all = $('.all-monitor');
-  if (all && !dragging) {
+  if (all && !dragging && document.activeElement !== all.querySelector('input')) {
     const average = Math.round(state.monitors.reduce((sum, m) => sum + m.brightness, 0) / state.monitors.length);
     const input = all.querySelector('input'); input.value = average; setFill(input);
     all.querySelector('.monitor-value').firstChild.textContent = average;
@@ -112,7 +127,7 @@ function renderSchedules() {
     const toggle = document.createElement('button'); toggle.className = 'schedule-toggle'; toggle.title = s.firedAt ? 'Completed' : s.enabled ? 'Disable' : 'Enable'; toggle.disabled = !!s.firedAt; toggle.setAttribute('aria-label', toggle.title + ' schedule'); toggle.addEventListener('click', () => call(window.lumen.toggleSchedule(s.id)));
     const main = document.createElement('div'); main.className = 'schedule-main';
     const title = document.createElement('strong'); title.textContent = `${s.target}% in ${s.durationMinutes ? s.durationMinutes + ' min' : 'an instant'}`;
-    const detail = document.createElement('small'); detail.textContent = `${s.kind === 'once' ? 'Once · ' + new Date(s.startAt).toLocaleDateString() + ' ' + clock(s.startAt) : dayString(s.days) + ' · ' + s.time} · ${s.curve === 'linear' ? 'even' : s.curve === 'front' ? 'early' : 'late'}`;
+    const detail = document.createElement('small'); detail.textContent = `${s.kind === 'once' ? 'Once · ' + new Date(s.startAt).toLocaleDateString() + ' ' + clock(s.startAt) : dayString(s.days) + ' · ' + (s.kind === 'solar' ? s.event + (s.offsetMinutes ? ` ${s.offsetMinutes > 0 ? '+' : ''}${s.offsetMinutes} min` : '') : s.time)} · ${curveName(s.curve)}`;
     main.append(title, detail);
     const meta = document.createElement('div'); meta.className = 'schedule-meta';
     const next = document.createElement('span'); next.textContent = s.nextAt ? 'NEXT ' + clock(s.nextAt) : s.firedAt ? 'DONE' : s.kind === 'once' && s.enabled ? 'MISSED' : 'PAUSED';
@@ -129,7 +144,7 @@ function renderAction() {
   const selected = $('#scope').value;
   const monitor = state.monitors.find(m => m.id === selected);
   const start = monitor ? `${monitor.brightness}%` : state.monitors.length === 1 ? `${state.monitors[0].brightness}%` : 'current';
-  $('#action-summary').textContent = `${start} → ${Number.isFinite(amount) ? amount : '—'}%  ·  ${minutes() ? `${minutes()} min · ${curve === 'linear' ? 'even' : curve === 'front' ? 'early change' : 'late change'}` : 'instant'}`;
+  $('#action-summary').textContent = `${start} → ${Number.isFinite(amount) ? amount : '—'}%  ·  ${minutes() ? `${minutes()} min · ${curveName(curve)}` : 'instant'}`;
   $('#start').firstChild.textContent = minutes() ? 'START TRANSITION ' : 'SET BRIGHTNESS ';
   $('#start').disabled = state.monitors.length === 0;
 }
@@ -137,6 +152,19 @@ function renderAction() {
 function render(next) {
   state = next;
   renderMonitors(); renderActive(); renderSchedules(); renderAction();
+  if (!settingsLoaded && state.settings) {
+    settingsLoaded = true;
+    $('#hotkeys').checked = state.settings.hotkeys;
+    for (const [id, key] of [['night-level', 'night'], ['work-level', 'work'], ['idle-minutes', 'idleMinutes'], ['idle-level', 'idleBrightness']]) $('#' + id).value = state.settings[key];
+  }
+  const select = $('#limits-scope');
+  if (select.dataset.signature !== monitorSignature) {
+    select.dataset.signature = monitorSignature;
+    const selected = select.value; select.replaceChildren();
+    for (const monitor of state.monitors) { const option = document.createElement('option'); option.value = monitor.id; option.textContent = monitor.name; select.append(option); }
+    if (state.monitors.some(m => m.id === selected)) select.value = selected;
+    renderLimits();
+  }
   if (state.error && state.error !== previousError) toast(state.error);
   previousError = state.error;
 }
@@ -145,6 +173,7 @@ $$('.tab').forEach(tab => tab.addEventListener('click', () => {
   $$('.tab').forEach(t => t.classList.toggle('active', t === tab));
   $('#now-panel').classList.toggle('hidden', tab.dataset.tab !== 'now');
   $('#schedule-panel').classList.toggle('hidden', tab.dataset.tab !== 'schedule');
+  $('#settings-panel').classList.toggle('hidden', tab.dataset.tab !== 'settings');
   $('main').scrollTop = 0;
 }));
 $('#refresh').addEventListener('click', () => call(window.lumen.refresh()));
@@ -164,7 +193,9 @@ $$('[data-curve]').forEach(button => button.addEventListener('click', () => {
 $('#start').addEventListener('click', () => call(window.lumen.start({ monitorId: $('#scope').value, target: Number($('#target-number').value), durationMinutes: minutes(), curve })));
 $$('[data-mode]').forEach(button => button.addEventListener('click', () => {
   mode = button.dataset.mode; $$('[data-mode]').forEach(b => b.classList.toggle('selected', b === button));
-  $('#repeat-fields').classList.toggle('hidden', mode !== 'repeat'); $('#once-fields').classList.toggle('hidden', mode !== 'once');
+  $('#repeat-fields').classList.toggle('hidden', mode === 'once'); $('#once-fields').classList.toggle('hidden', mode !== 'once');
+  $('#solar-fields').classList.toggle('hidden', mode !== 'solar'); $('#schedule-time').classList.toggle('hidden', mode === 'solar');
+  $('#latitude').required = mode === 'solar'; $('#longitude').required = mode === 'solar';
   $('#schedule-time').required = mode === 'repeat'; $('#schedule-date').required = mode === 'once';
 }));
 $$('[data-day]').forEach(button => button.addEventListener('click', () => button.classList.toggle('selected')));
@@ -174,10 +205,27 @@ $('#schedule-form').addEventListener('submit', async event => {
   const input = {
     monitorId: $('#schedule-scope').value, target: Number($('#schedule-target').value), durationMinutes: Number($('#schedule-minutes').value),
     curve: $('#schedule-curve').value, kind: mode,
-    ...(mode === 'once' ? { startAt: $('#schedule-date').value } : { time: $('#schedule-time').value, days: selectedDays })
+    ...(mode === 'once' ? { startAt: $('#schedule-date').value } : { time: $('#schedule-time').value, days: selectedDays }),
+    ...(mode === 'solar' ? { event: $('#solar-event').value, latitude: Number($('#latitude').value), longitude: Number($('#longitude').value), offsetMinutes: Number($('#solar-offset').value) } : {})
   };
   try { await window.lumen.addSchedule(input); toast('Schedule saved.'); $('main').scrollTop = 0; }
   catch (err) { toast(err.message || String(err)); }
+});
+function renderLimits() {
+  const limits = state.limits?.[$('#limits-scope').value] || { min: 0, max: 100, offset: 0 };
+  for (const key of ['min', 'max', 'offset']) $('#limit-' + key).value = limits[key];
+}
+$('#limits-scope').addEventListener('change', renderLimits);
+$$('[data-preset]').forEach(button => button.addEventListener('click', () => call(window.lumen.preset(button.dataset.preset))));
+$('#settings-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  try { await window.lumen.configure({ settings: { hotkeys: $('#hotkeys').checked, night: Number($('#night-level').value), work: Number($('#work-level').value), idleMinutes: Number($('#idle-minutes').value), idleBrightness: Number($('#idle-level').value) } }); toast('Settings saved.'); }
+  catch (error) { toast(error.message); }
+});
+$('#limits-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  try { await window.lumen.configure({ monitorId: $('#limits-scope').value, limits: { min: Number($('#limit-min').value), max: Number($('#limit-max').value), offset: Number($('#limit-offset').value) } }); toast('Display limits saved.'); }
+  catch (error) { toast(error.message); }
 });
 window.lumen.onState(render);
 window.lumen.getState().then(render);

@@ -12,6 +12,10 @@ function progress(shape, fraction) {
 function brightnessAt(ramp, now) {
   if (now >= ramp.endsAt) return ramp.target;
   const elapsed = (now - ramp.startsAt) / (ramp.endsAt - ramp.startsAt);
+  if (ramp.curve === 'perceptual') {
+    const t = clamp(elapsed, 0, 1);
+    return Math.round(100 * Math.pow(Math.pow(ramp.from / 100, 1 / 2.2) * (1 - t) + Math.pow(ramp.target / 100, 1 / 2.2) * t, 2.2));
+  }
   return Math.round(clamp(ramp.from + (ramp.target - ramp.from) * progress(ramp.curve, elapsed)));
 }
 

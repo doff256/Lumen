@@ -1,14 +1,18 @@
 {
   "name": "lumen-brightness",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "A precise Windows tray brightness controller with timed ramps and schedules",
-  "author": "Lumen",
+  "author": "Doff256",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
     "test": "node --test test/*.test.js",
-    "dist": "electron-builder --win portable zip"
+    "dist": "electron-builder --win portable zip",
+    "build:native": "node scripts/build-native.js",
+    "prestart": "npm run build:native",
+    "predist": "npm run build:native",
+    "test:ui": "electron scripts/ui-smoke.js"
   },
   "devDependencies": {
     "electron": "44.4.5",
@@ -18,10 +22,35 @@
     "appId": "app.lumen.brightness",
     "productName": "Lumen",
     "asar": true,
-    "asarUnpack": ["src/monitor/bridge.ps1"],
+    "asarUnpack": [
+      "src/monitor/native.exe",
+      "src/monitor/wmi.ps1"
+    ],
     "compression": "normal",
-    "files": ["src/**/*", "assets/**/*", "package.json"],
-    "win": { "target": ["portable", "zip"], "icon": "assets/icon.ico", "signAndEditExecutable": false },
-    "portable": { "artifactName": "Lumen-${version}-portable.exe" }
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json",
+      "LICENSE"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "zip"
+      ],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "Lumen-${version}-portable.exe"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/doff256/Lumen.git"
+  },
+  "dependencies": {
+    "suncalc": "1.9.0"
   }
 }

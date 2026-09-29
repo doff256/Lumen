@@ -1,16 +1,34 @@
 'use strict';
 
-const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeTheme } = require('electron');
+const { app, BrowserWindow, Tray, Menu, ipcMain, screen, nativeTheme, powerMonitor, globalShortcut } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Controller } = require('./controller');
 const { WindowsMonitors } = require('./monitor/windows');
 const { DemoMonitors } = require('./monitor/demo');
 
-if (!app.requestSingleInstanceLock()) app.quit();
+const primaryInstance = app.requestSingleInstanceLock();
+if (!primaryInstance) app.quit();
 
 let window, tray, controller, adapter, refreshTimer, tickTimer;
 let quitting = false;
+let hiddenAt = 0, displayTimer;
+let idleTimer, shortcutBusy = false;
+function report(error) { controller.error = error.message; controller.notify(); }
+function registerHotkeys() {
+  globalShortcut.unregisterAll();
+  if (!controller.settings.hotkeys) return;
+  for (const [key, delta] of [['Up', 5], ['Down', -5]]) {
+    const registered = globalShortcut.register(`CommandOrControl+Alt+${key}`, async () => {
+      if (shortcutBusy) return;
+      shortcutBusy = true;
+      try { await controller.adjust(delta); } catch (error) { report(error); }
+      finally { shortcutBusy = false; }
+    });
+    if (!registered) report(Error(`Ctrl+Alt+${key} is already used by another app. Disable Lumen hotkeys in Settings if needed.`));
+  }
+}
+function hideWindow() { hiddenAt = Date.now(); window.hide(); }
 
 function createStorage() {
   const filename = path.join(app.getPath('userData'), 'settings.json');
@@ -47,7 +65,7 @@ function createWindow() {
     }
   });
   window.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  window.on('blur', () => { if (!window.webContents.isDevToolsOpened()) window.hide(); });
+  window.on('blur', () => { if (!window.webContents.isDevToolsOpened()) hideWindow(); });
   window.on('close', event => { if (!quitting) { event.preventDefault(); window.hide(); } });
   window.webContents.on('did-finish-load', () => controller.notify());
 }
@@ -69,15 +87,15 @@ function buildMenu() {
 }
 
 app.on('second-instance', showWindow);
-app.whenReady().then(async () => {
+if (primaryInstance) app.whenReady().then(async () => {
   if (process.platform === 'darwin') app.dock.hide();
   nativeTheme.themeSource = 'dark';
-  adapter = process.platform === 'win32' ? new WindowsMonitors() : new DemoMonitors();
+  adapter = process.platform === 'win32' && !process.argv.includes('--demo') ? new WindowsMonitors({ internal: () => screen.getAllDisplays().some(d => d.internal) }) : new DemoMonitors();
   controller = new Controller({ adapter, storage: createStorage(), emit: state => window?.webContents.send('state', state) });
   createWindow();
   tray = new Tray(path.join(__dirname, '..', 'assets', 'icon.png'));
   tray.setToolTip('Lumen · brightness');
-  tray.on('click', () => window.isVisible() ? window.hide() : showWindow());
+  tray.on('click', () => { if (Date.now() - hiddenAt > 200) window.isVisible() ? hideWindow() : showWindow(); });
   tray.on('right-click', () => tray.popUpContextMenu(buildMenu()));
   ipcMain.handle('state:get', () => controller.snapshot());
   ipcMain.handle('monitors:refresh', () => controller.refresh());
@@ -87,15 +105,25 @@ app.whenReady().then(async () => {
   ipcMain.handle('schedule:add', (_, args) => controller.addSchedule(args));
   ipcMain.handle('schedule:remove', (_, id) => controller.removeSchedule(id));
   ipcMain.handle('schedule:toggle', (_, id) => controller.toggleSchedule(id));
+  ipcMain.handle('preset:apply', (_, name) => controller.preset(name));
+  ipcMain.handle('settings:save', (_, args) => { controller.configure(args); registerHotkeys(); });
   ipcMain.handle('window:hide', () => window.hide());
   await controller.refresh();
-  tickTimer = setInterval(() => controller.tick(), 1000);
+  registerHotkeys();
+  powerMonitor.on('resume', () => controller.resume().catch(report));
+  for (const event of ['display-added', 'display-removed', 'display-metrics-changed']) {
+    screen.on(event, () => { clearTimeout(displayTimer); displayTimer = setTimeout(() => controller.refresh(), 500); });
+  }
+  tickTimer = setInterval(() => controller.tick().catch(report), 1000);
+  idleTimer = setInterval(() => controller.updateIdle(powerMonitor.getSystemIdleTime()).catch(report), 1000);
   refreshTimer = setInterval(() => controller.refresh(), 300000);
 });
 
 app.on('before-quit', () => {
   quitting = true;
   clearInterval(tickTimer); clearInterval(refreshTimer);
+  clearTimeout(displayTimer);
+  clearInterval(idleTimer); globalShortcut.unregisterAll();
   adapter?.close();
 });
 app.on('window-all-closed', () => { /* Tray app remains running. */ });

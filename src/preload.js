@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld('lumen', {
   addSchedule: args => invoke('schedule:add', args),
   removeSchedule: id => invoke('schedule:remove', id),
   toggleSchedule: id => invoke('schedule:toggle', id),
+  preset: name => invoke('preset:apply', name),
+  configure: args => invoke('settings:save', args),
   hide: () => invoke('window:hide')
 });

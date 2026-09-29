@@ -12,13 +12,11 @@
     <div class="identity"><span class="mark" aria-hidden="true"><span></span></span><div><strong>LUMEN</strong><small>DISPLAY BRIGHTNESS</small></div></div>
     <div class="top-actions"><span class="live-dot" title="Running in the tray"></span><button id="refresh" class="icon-button" title="Refresh displays" aria-label="Refresh displays">↻</button><button id="close" class="icon-button close-button" title="Close popup" aria-label="Close popup">×</button></div>
   </header>
-  <nav class="tabs" aria-label="Sections"><button class="tab active" data-tab="now">NOW</button><button class="tab" data-tab="schedule">SCHEDULES <span id="schedule-count">0</span></button></nav>
+  <nav class="tabs" aria-label="Sections"><button class="tab active" data-tab="now">NOW</button><button class="tab" data-tab="schedule">SCHEDULES <span id="schedule-count">0</span></button><button class="tab" data-tab="settings">SETTINGS</button></nav>
   <main>
     <section id="now-panel" class="panel">
-      <div class="section-head"><span>DISPLAYS</span><span id="display-count">—</span></div>
-      <div id="monitor-list" class="monitor-list"></div>
-      <div id="empty-state" class="empty-state hidden">No adjustable displays found.<br><span>Check that DDC/CI is enabled in your monitor menu, then refresh.</span></div>
       <div class="section-head action-heading"><span>MAKE A CHANGE</span><span>01 / 02</span></div>
+      <div class="preset-row"><button data-preset="night">NIGHT</button><button data-preset="work">WORK</button></div>
       <div class="action-box">
         <div class="field-top"><label for="target-number">TARGET BRIGHTNESS</label><select id="scope" aria-label="Display"></select></div>
         <div class="target-line"><input id="target-number" type="number" min="0" max="100" value="70" aria-label="Target brightness"><span>%</span><div class="target-note">STARTS FROM<br>CURRENT LEVEL</div></div>
@@ -31,7 +29,7 @@
         <div id="custom-duration" class="custom-duration hidden"><input id="minutes" type="number" min="1" max="1440" value="90" aria-label="Custom duration in minutes"><span>MINUTES · MAX 24 HOURS</span></div>
         <div id="curve-block"><div class="field-top curve-head"><label>CHANGE CURVE</label><span class="minor">HOW IT GETS THERE</span></div>
           <div class="curve-row" role="group" aria-label="Change curve">
-            <button data-curve="linear" class="selected"><svg viewBox="0 0 40 24"><path d="M3 21 L37 3"/></svg><span>EVEN</span></button>
+            <button data-curve="perceptual" class="selected"><svg viewBox="0 0 40 24"><path d="M3 21 L37 3"/></svg><span>SMOOTH</span></button>
             <button data-curve="front"><svg viewBox="0 0 40 24"><path d="M3 21 C7 5 17 3 37 3"/></svg><span>EARLY</span></button>
             <button data-curve="late"><svg viewBox="0 0 40 24"><path d="M3 21 C24 21 34 19 37 3"/></svg><span>LATE</span></button>
           </div>
@@ -39,6 +37,9 @@
         <div id="action-summary" class="summary"></div>
         <button id="start" class="primary-button">START TRANSITION <span>↗</span></button>
       </div>
+      <div class="section-head"><span>DISPLAYS</span><span id="display-count">—</span></div>
+      <div id="monitor-list" class="monitor-list"></div>
+      <div id="empty-state" class="empty-state hidden">No adjustable displays found.<br><span>Check that DDC/CI is enabled in your monitor menu, then refresh.</span></div>
       <div id="active-ramp" class="active-ramp hidden"></div>
     </section>
     <section id="schedule-panel" class="panel hidden">
@@ -47,13 +48,36 @@
       <div class="section-head action-heading"><span>NEW SCHEDULE</span><span>02 / 02</span></div>
       <form id="schedule-form" class="schedule-form">
         <div class="form-grid"><label>TARGET <span>%</span><input id="schedule-target" type="number" min="0" max="100" required value="30"></label><label>REACH IN <span>MIN</span><input id="schedule-minutes" type="number" min="0" max="1440" required value="30"></label></div>
-        <div class="form-grid"><label>DISPLAY<select id="schedule-scope"></select></label><label>CURVE<select id="schedule-curve"><option value="linear">Even</option><option value="front">Early change</option><option value="late">Late change</option></select></label></div>
+        <div class="form-grid"><label>DISPLAY<select id="schedule-scope"></select></label><label>CURVE<select id="schedule-curve"><option value="perceptual">Perceptual</option><option value="linear">Linear</option><option value="front">Early change</option><option value="late">Late change</option></select></label></div>
         <div class="form-label">START</div>
-        <div class="mode-row"><button type="button" data-mode="repeat" class="selected">REPEAT</button><button type="button" data-mode="once">ONE TIME</button></div>
+        <div class="mode-row"><button type="button" data-mode="repeat" class="selected">REPEAT</button><button type="button" data-mode="once">ONE TIME</button><button type="button" data-mode="solar">SUN</button></div>
         <div id="repeat-fields"><input id="schedule-time" type="time" value="23:00" required aria-label="Start time"><div class="weekdays" role="group" aria-label="Repeat days"><button type="button" data-day="1" class="selected">M</button><button type="button" data-day="2" class="selected">T</button><button type="button" data-day="3" class="selected">W</button><button type="button" data-day="4" class="selected">T</button><button type="button" data-day="5" class="selected">F</button><button type="button" data-day="6" class="selected">S</button><button type="button" data-day="0" class="selected">S</button></div></div>
+        <div id="solar-fields" class="hidden">
+          <div class="form-grid"><label>EVENT<select id="solar-event"><option value="sunset">Sunset</option><option value="sunrise">Sunrise</option></select></label><label>OFFSET (MIN)<input id="solar-offset" type="number" min="-720" max="720" value="0"></label></div>
+          <div class="form-grid"><label>LATITUDE<input id="latitude" type="number" min="-90" max="90" step="any" placeholder="51.5"></label><label>LONGITUDE<input id="longitude" type="number" min="-180" max="180" step="any" placeholder="-0.1"></label></div>
+          <p class="form-help">Enter your location. Calculated locally, with no location tracking. Days without sunrise or sunset are skipped.</p>
+        </div>
         <div id="once-fields" class="hidden"><input id="schedule-date" type="datetime-local" aria-label="Start date and time"></div>
         <p class="form-help">The transition starts at this time, using the brightness then as its starting point.</p>
         <button class="primary-button" type="submit">SAVE SCHEDULE <span>↗</span></button>
+      </form>
+    </section>
+    <section id="settings-panel" class="panel hidden">
+      <form id="settings-form" class="schedule-form">
+        <div class="section-head">SHORTCUTS & PRESETS</div>
+        <label class="check-label"><input id="hotkeys" type="checkbox"> Ctrl + Alt + ↑ / ↓ changes brightness by 5%</label>
+        <div class="form-grid"><label>NIGHT %<input id="night-level" type="number" min="0" max="100" required></label><label>WORK %<input id="work-level" type="number" min="0" max="100" required></label></div>
+        <div class="section-head">IDLE DIMMING</div>
+        <div class="form-grid"><label>IDLE MINUTES<input id="idle-minutes" type="number" min="0" max="1440" required></label><label>DIM TO %<input id="idle-level" type="number" min="0" max="100" required></label></div>
+        <p class="form-help">0 minutes disables dimming. Your brightness returns when you become active; transitions keep their original timing.</p>
+        <button class="primary-button">SAVE SETTINGS <span>↗</span></button>
+      </form>
+      <div class="section-head action-heading">DISPLAY CALIBRATION</div>
+      <form id="limits-form" class="schedule-form">
+        <div class="form-grid"><label>DISPLAY<select id="limits-scope"></select></label><label>OFFSET %<input id="limit-offset" type="number" min="-100" max="100" value="0" required></label></div>
+        <div class="form-grid"><label>MINIMUM %<input id="limit-min" type="number" min="0" max="100" value="0" required></label><label>MAXIMUM %<input id="limit-max" type="number" min="0" max="100" value="100" required></label></div>
+        <p class="form-help">Offsets adjust targets; limits clamp every brightness change. Individual sliders show the resulting hardware percentage.</p>
+        <button class="primary-button">SAVE DISPLAY LIMITS <span>↗</span></button>
       </form>
     </section>
   </main>
