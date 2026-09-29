@@ -1,12 +1,12 @@
-Lumen 1.1.0 improves display reliability and adds everyday brightness controls.
+Lumen 1.2.0 fixes overnight schedule reconciliation and makes the popup focus on live brightness control.
 
-- Stable Windows device-path IDs, automatic refresh after resume/display changes, and catch-up for schedules whose ramps are still active.
-- Manual changes reliably override ramps; slow or failed monitors do not block writes to other displays.
-- Compiled DDC/CI helper replaces the PowerShell external-display bridge. No startup C# compilation or execution-policy bypass. WMI PowerShell runs only on demand for laptop panels.
-- Live throttled sliders, tray-click debounce, single-instance startup protection, and a visible Start action.
-- Ctrl+Alt+Up/Down hotkeys, editable Night/Work presets, sunrise/sunset schedules, perceptual ramps, per-display limits/offsets, and optional idle dimming.
-- MIT license, screenshot, and automated Windows release builds.
+- On wake or restart, the latest missed schedule replaces an older saved ramp. Expired occurrences apply their final target immediately; failed writes retry. The 23:00 Night / 07:00 Work overnight case now restores Work.
+- Native System.Management replaces PowerShell for laptop brightness. Reusable per-display helper sessions cache DDC handles and min/max, isolate timeouts and recover automatically.
+- Working laptop panels remain available after external-display discovery failure. Unresponsive displays retain a disabled row and a visible warning.
+- Unique EDID manufacturer/product/serial identities survive port changes. Device paths remain the fallback for missing or duplicate serials. Exact path aliases migrate automatically; unambiguous legacy displays have a one-click migration.
+- Live sliders and Night/Work chips come first in a compact popup. Fade to… is collapsed, schedules read as sentences and reference presets, settings autosave, and calibration is under each display's Details.
+- Display limits clamp brightness immediately. Idle dimming's input-only behavior is documented in the app and README.
 
-Download the portable EXE for a single-file launcher, or extract the ZIP and run Lumen.exe. Builds are unsigned. Enable DDC/CI in your monitor menu.
+Download the portable EXE or extract the ZIP and run Lumen.exe. Enable DDC/CI in external monitor settings.
 
-Upgrade note: schedules or saved ramps using old geometry-based display IDs need recreating. Lumen warns about unresolved legacy IDs. Device paths may still change with some dock/port changes.
+**Signing:** these builds remain unsigned. [Code signing policy and SignPath enrollment requirements](https://github.com/doff256/Lumen/blob/main/docs/code-signing.md). SignPath approval and owner setup are still required; no signing application has been submitted on the owner's behalf.

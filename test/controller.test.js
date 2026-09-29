@@ -6,6 +6,78 @@ const { Controller } = require('../src/controller');
 const { progress } = require('../src/curves');
 const { occurrencesBetween } = require('../src/schedule');
 
+test('overnight sleep applies expired morning target instead of saved night ramp', async () => {
+  const f = fixture('2026-09-29T22:59:00'); await f.controller.refresh();
+  for (const [time, target] of [['23:00',20], ['07:00',80]]) f.controller.addSchedule({ kind:'repeat', time, days:[0,1,2,3,4,5,6], monitorId:'all', target, durationMinutes:30, curve:'linear' });
+  f.advance(60000); await f.controller.tick();
+  f.advance(10*60000); await f.controller.tick();
+  f.advance((8*60+50)*60000); await f.controller.resume();
+  assert.deepEqual(f.writes.slice(-2), [{id:'a',value:80},{id:'b',value:80}]);
+  assert.equal(f.controller.ramps.length,0);
+});
+
+test('newer saved ramp wins over an older missed schedule', async () => {
+  const f=fixture('2026-09-29T06:59:00');await f.controller.refresh();
+  f.controller.addSchedule({kind:'repeat',time:'07:00',days:[0,1,2,3,4,5,6],monitorId:'a',target:80,durationMinutes:30,curve:'linear'});
+  f.advance(46*60000);await f.controller.start({monitorId:'a',target:40,durationMinutes:30});
+  f.advance(15*60000);await f.controller.resume();
+  assert.equal(f.writes.at(-1).value,60);
+  assert.equal(f.controller.ramps[0].target,40);
+});
+
+test('expired schedule target survives adapter failure and retries without old ramp', async () => {
+  const f=fixture('2026-09-29T06:59:00');await f.controller.refresh();
+  await f.controller.start({monitorId:'a',target:20,durationMinutes:30});
+  f.controller.addSchedule({kind:'repeat',time:'07:00',days:[0,1,2,3,4,5,6],monitorId:'a',target:80,durationMinutes:30,curve:'linear'});
+  const set=f.controller.adapter.set;f.controller.adapter.set=async()=>{throw Error('offline');};
+  f.advance(61*60000);await f.controller.resume();assert.equal(f.controller.ramps[0].target,80);
+  f.controller.adapter.set=set;f.advance(1000);await f.controller.tick();assert.equal(f.writes.at(-1).value,80);
+});
+
+test('a newer occurrence discards the old ramp even while its display is offline', async()=>{
+  const f=fixture('2026-09-29T06:59:00');await f.controller.refresh();
+  await f.controller.start({monitorId:'a',target:20,durationMinutes:30});
+  f.controller.addSchedule({kind:'repeat',time:'07:00',days:[0,1,2,3,4,5,6],monitorId:'a',target:80,durationMinutes:30,curve:'linear'});
+  f.controller.adapter.list=async()=>[];f.advance(61*60000);await f.controller.resume();
+  assert.equal(f.controller.ramps.length,0);assert.equal(f.writes.length,0);
+  f.controller.adapter.list=async()=>[{id:'a',name:'A',brightness:20}];await f.controller.refresh();f.advance(1000);await f.controller.tick();
+  assert.equal(f.writes.at(-1).value,80);
+});
+
+test('preset-based schedules resolve the current preset at execution', async()=>{
+  const f=fixture('2026-09-29T06:59:00');await f.controller.refresh();
+  const s=f.controller.addSchedule({kind:'repeat',time:'07:00',days:[0,1,2,3,4,5,6],monitorId:'a',preset:'work',durationMinutes:30,curve:'perceptual'});
+  assert.equal(s.target,undefined);await f.controller.configure({settings:{work:65}});
+  f.advance(61*60000);await f.controller.resume();assert.equal(f.writes.at(-1).value,65);
+});
+
+test('limits clamp hardware immediately without applying the offset twice', async()=>{
+  const f=fixture();await f.controller.refresh();await f.controller.configure({monitorId:'a',limits:{min:10,max:60,offset:-5}});
+  assert.deepEqual(f.writes,[{id:'a',value:60}]);assert.equal(f.controller.monitors[0].brightness,60);
+});
+
+test('one-click migration is offered only for an unambiguous connected display',async()=>{
+  const f=fixture();await f.controller.refresh();
+  f.controller.schedules.push({id:'old',monitorId:'ddc:0:0:1920:1080:0',kind:'repeat',time:'07:00',days:[1],enabled:true});
+  assert.equal(f.controller.migrations().length,0);
+  f.controller.monitors=[{id:'edid:unique',name:'Panel',type:'DDC/CI'}];
+  const migration=f.controller.migrations()[0];f.controller.migrate(migration);
+  assert.equal(f.saved.schedules[0].monitorId,'edid:unique');
+});
+
+test('restart reconciles old saved ramps without a saved last-tick timestamp',async()=>{
+  const now=new Date('2026-09-30T08:00:00').getTime();
+  const saved={ramps:[{monitorId:'a',from:80,target:20,startsAt:new Date('2026-09-29T23:00:00').getTime(),endsAt:new Date('2026-09-29T23:30:00').getTime(),curve:'linear'}],schedules:[{id:'morning',kind:'repeat',enabled:true,time:'07:00',days:[0,1,2,3,4,5,6],monitorId:'a',target:80,durationMinutes:30,curve:'linear'}]};
+  const writes=[];const controller=new Controller({clock:()=>now,storage:{load:()=>saved,save(){}},adapter:{list:async()=>[{id:'a',brightness:20}],set:async(id,value)=>writes.push(value)}});
+  await controller.resume();assert.deepEqual(writes,[80]);assert.equal(controller.ramps.length,0);
+});
+
+test('path-to-EDID migration preserves the newest saved state',async()=>{
+  const f=fixture();await f.controller.refresh();
+  f.controller.ramps=[{monitorId:'ddc:path:old',startsAt:1,endsAt:10,target:20},{monitorId:'edid:new',startsAt:2,endsAt:10,target:80}];
+  f.controller.remap('ddc:path:old','edid:new');assert.equal(f.controller.ramps.length,1);assert.equal(f.controller.ramps[0].target,80);
+});
+
 test('manual set during a tick prevents a stale write to the next display', async () => {
   const f = fixture(); await f.controller.refresh();
   await f.controller.start({ monitorId: 'all', target: 0, durationMinutes: 10 });
@@ -48,9 +120,9 @@ test('a hung display does not block another display ramp', async () => {
 
 test('limits and offsets apply once to presets and ramps', async () => {
   const f = fixture(); await f.controller.refresh();
-  f.controller.configure({ monitorId: 'a', limits: { min: 10, max: 65, offset: -10 } });
+  await f.controller.configure({ monitorId: 'a', limits: { min: 10, max: 65, offset: -10 } });
   await f.controller.preset('work');
-  assert.deepEqual(f.writes, [{ id: 'a', value: 65 }, { id: 'b', value: 80 }]);
+  assert.deepEqual(f.writes.slice(-2), [{ id: 'a', value: 65 }, { id: 'b', value: 80 }]);
   await f.controller.start({ monitorId: 'a', target: 30, durationMinutes: 1, curve: 'perceptual' });
   f.advance(60000); await f.controller.tick();
   assert.equal(f.writes.at(-1).value, 20);
@@ -58,7 +130,7 @@ test('limits and offsets apply once to presets and ramps', async () => {
 
 test('idle dimming restores the current ramp position without cancelling it', async () => {
   const f = fixture(); await f.controller.refresh();
-  f.controller.configure({ settings: { idleMinutes: 1, idleBrightness: 10 } });
+  await f.controller.configure({ settings: { idleMinutes: 1, idleBrightness: 10 } });
   await f.controller.start({ monitorId: 'a', target: 20, durationMinutes: 10 });
   await f.controller.updateIdle(61);
   assert.equal(f.writes[0].value, 10);
@@ -79,7 +151,7 @@ test('perceptual ramp interpolates perceived intensity with exact endpoints', ()
 
 test('refresh while idle preserves the brightness to restore', async () => {
   const f = fixture(); await f.controller.refresh();
-  f.controller.configure({ settings: { idleMinutes: 1, idleBrightness: 10 } });
+  await f.controller.configure({ settings: { idleMinutes: 1, idleBrightness: 10 } });
   await f.controller.updateIdle(61);
   f.controller.adapter.list = async () => [{ id: 'a', name: 'A', brightness: 10 }];
   await f.controller.refresh(); await f.controller.updateIdle(0);

@@ -1,0 +1,11 @@
+:root {
+  --color-paper: oklch(18% .012 255); --color-raised: oklch(23% .012 255);
+  --color-ink: oklch(94% .008 110); --color-muted: oklch(73% .01 255);
+  --color-rule: oklch(37% .01 255); --color-control: oklch(57% .012 255);
+  --color-accent: oklch(91% .17 115); --color-focus: var(--color-accent);
+  --color-on-accent: oklch(19% .02 115); --color-error: oklch(83% .1 45);
+  --font-body: 'Segoe UI Variable', 'Segoe UI', sans-serif; --font-display: var(--font-body);
+  --space-xs: 4px; --space-sm: 8px; --space-md: 12px; --space-lg: 16px; --space-xl: 24px;
+  --text-sm: 12px; --text-base: 14px; --text-lg: 18px; --text-number: 20px;
+  --radius-control: 5px; --rule-width: 1px;
+}

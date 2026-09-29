@@ -42,8 +42,8 @@ function createStorage() {
   };
 }
 
-function showWindow() {
-  if (!window) return;
+function positionWindow() {
+  if (!window || !tray) return;
   const anchor = tray.getBounds();
   const bounds = screen.getDisplayNearestPoint({ x: anchor.x, y: anchor.y }).workArea;
   const [width, height] = window.getSize();
@@ -51,13 +51,17 @@ function showWindow() {
   const above = anchor.y > bounds.y + bounds.height / 2;
   const y = above ? anchor.y - height - 10 : anchor.y + anchor.height + 10;
   window.setPosition(Math.round(x), Math.round(Math.max(bounds.y + 8, Math.min(y, bounds.y + bounds.height - height - 8))));
-  window.show(); window.focus();
+}
+
+function showWindow() {
+  if (!window) return;
+  positionWindow(); window.show(); window.focus();
   controller.refresh();
 }
 
 function createWindow() {
   window = new BrowserWindow({
-    width: 432, height: 648, minWidth: 432, minHeight: 648, maxWidth: 432, maxHeight: 648,
+    width: 432, height: 320, minWidth: 432, minHeight: 160, maxWidth: 432, maxHeight: 800,
     show: false, frame: false, resizable: false, skipTaskbar: true, alwaysOnTop: true,
     backgroundColor: '#101216', webPreferences: {
       preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false,
@@ -106,13 +110,20 @@ if (primaryInstance) app.whenReady().then(async () => {
   ipcMain.handle('schedule:remove', (_, id) => controller.removeSchedule(id));
   ipcMain.handle('schedule:toggle', (_, id) => controller.toggleSchedule(id));
   ipcMain.handle('preset:apply', (_, name) => controller.preset(name));
-  ipcMain.handle('settings:save', (_, args) => { controller.configure(args); registerHotkeys(); });
+  ipcMain.handle('settings:save', async (_, args) => { await controller.configure(args); registerHotkeys(); });
+  ipcMain.handle('monitors:migrate', (_, args) => controller.migrate(args));
   ipcMain.handle('window:hide', () => window.hide());
+  ipcMain.handle('window:resize', (_, height) => {
+    if (!Number.isFinite(height)) return;
+    const area = screen.getDisplayNearestPoint(tray.getBounds()).workArea;
+    window.setSize(432, Math.max(160, Math.min(Math.round(height), 720, area.height - 24)));
+    positionWindow();
+  });
   await controller.refresh();
   registerHotkeys();
-  powerMonitor.on('resume', () => controller.resume().catch(report));
+  powerMonitor.on('resume', () => { adapter.invalidate?.(); controller.resume().catch(report); });
   for (const event of ['display-added', 'display-removed', 'display-metrics-changed']) {
-    screen.on(event, () => { clearTimeout(displayTimer); displayTimer = setTimeout(() => controller.refresh(), 500); });
+    screen.on(event, () => { clearTimeout(displayTimer); displayTimer = setTimeout(() => { adapter.invalidate?.(); controller.refresh(); }, 500); });
   }
   tickTimer = setInterval(() => controller.tick().catch(report), 1000);
   idleTimer = setInterval(() => controller.updateIdle(powerMonitor.getSystemIdleTime()).catch(report), 1000);

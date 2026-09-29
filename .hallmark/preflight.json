@@ -1,0 +1,17 @@
+{
+  "font": "Segoe UI Variable / Segoe UI",
+  "palette": "existing charcoal/lime",
+  "motion": "none",
+  "framework": "vanilla Electron renderer",
+  "scope": "single tray popup",
+  "preserve": [
+    "font",
+    "brand palette"
+  ],
+  "files": [
+    "src/renderer/index.html",
+    "src/renderer/app.js",
+    "src/renderer/compact.css",
+    "tokens.css"
+  ]
+}

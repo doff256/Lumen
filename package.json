@@ -1,6 +1,6 @@
 {
   "name": "lumen-brightness",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "A precise Windows tray brightness controller with timed ramps and schedules",
   "author": "Doff256",
@@ -23,15 +23,15 @@
     "productName": "Lumen",
     "asar": true,
     "asarUnpack": [
-      "src/monitor/native.exe",
-      "src/monitor/wmi.ps1"
+      "src/monitor/native.exe"
     ],
     "compression": "normal",
     "files": [
       "src/**/*",
       "assets/**/*",
       "package.json",
-      "LICENSE"
+      "LICENSE",
+      "tokens.css"
     ],
     "win": {
       "target": [

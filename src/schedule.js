@@ -32,8 +32,21 @@ function occurrencesBetween(schedule, after, before) {
   return found.sort((a, b) => a.at - b.at);
 }
 
+function latestOccurrence(schedule, after, before) {
+  if (schedule.kind === 'once') return occurrencesBetween(schedule, after, before).at(-1) || null;
+  // Weekly times need at most eight days; solar events may be absent all winter.
+  const days = schedule.kind === 'solar' ? 370 : 8;
+  for (let end = before; end > after; end -= 8 * 86400000) {
+    const start = Math.max(after, end - 8 * 86400000);
+    const event = occurrencesBetween(schedule, start, end).at(-1);
+    if (event) return event;
+    if (before - start >= days * 86400000) break;
+  }
+  return null;
+}
+
 function nextOccurrence(schedule, now) {
   return occurrencesBetween(schedule, now - 1, now + 8 * 86400000)[0] || null;
 }
 
-module.exports = { occurrencesBetween, nextOccurrence, localKey };
+module.exports = { occurrencesBetween, latestOccurrence, nextOccurrence, localKey };
