@@ -26,3 +26,59 @@ main{height:auto;max-height:calc(100vh - 48px);overflow-y:auto;scrollbar-width:t
 .toggle-line,.setting-line{display:flex;justify-content:space-between;align-items:center;gap:var(--space-sm);padding:var(--space-xs) 0}.setting-line span{white-space:nowrap}.hint{font-size:var(--text-sm);color:var(--color-muted);line-height:1.5;margin:var(--space-sm) 0}#active-ramp{display:flex;align-items:center;justify-content:space-between;gap:var(--space-sm);padding:var(--space-sm) 0;color:var(--color-muted);font-size:var(--text-sm)}#empty-state{padding:var(--space-lg) 0;color:var(--color-muted)}.notice{font-size:var(--text-sm);padding:var(--space-sm) 0;color:var(--color-error);overflow-wrap:anywhere}.migration{padding:var(--space-sm) 0}.migration button{margin-top:var(--space-xs)}
 @media(max-width:375px){.app-header{padding:0 var(--space-md);gap:var(--space-xs)}.app-header .tab{padding:4px 6px}#content{padding-inline:var(--space-md)}.monitor-heading strong{font-size:13px}.chips button{padding-inline:6px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ScapeSwitch reference · compact workbench · studied-DNA: user screenshot
+ * Square controls, charcoal surfaces, lime edge and active states.
+ * Segoe UI retained; no decorative motion. Critique: P5 H5 E4 S5 R5 V4. */
+body::before{content:'';position:fixed;inset:0 auto 0 0;width:2px;background:var(--color-accent);pointer-events:none;z-index:1}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;border:var(--rule-width) solid var(--color-rule)}
+.app-header{height:var(--header-height);margin:0 var(--space-xl);padding:0;gap:var(--space-md)}
+.app-identity{min-width:0}
+.app-identity h1{text-transform:uppercase;font-weight:750;letter-spacing:.02em;overflow-wrap:anywhere}
+.app-identity p{margin-top:var(--space-xs);font-size:var(--text-label);line-height:1.2;color:var(--color-muted);text-transform:uppercase;letter-spacing:.06em}
+.app-header nav{gap:var(--space-xs)}
+.app-header .tab{min-height:32px;padding:4px 8px;border:var(--rule-width) solid transparent;font-weight:600}
+.app-header .tab:hover{color:var(--color-ink);background:var(--color-raised);border-color:var(--color-rule)}
+.app-header .tab.active{background:var(--color-raised);border-color:var(--color-rule);color:var(--color-accent)}
+main{max-height:calc(100vh - var(--header-height))}
+#content{padding:0 var(--space-xl) var(--space-sm)}
+button{background:var(--color-raised);font-weight:600;border-color:var(--color-rule)}
+button:hover{border-color:var(--color-muted)}
+button:disabled:hover{border-color:var(--color-rule)}
+.monitor-row{padding:var(--space-sm) 0}
+.monitor-heading{min-height:32px}
+.monitor-heading strong{font-weight:650}
+.monitor-heading output{font-weight:650;line-height:1.2;letter-spacing:-.035em}
+.monitor-row[data-id=all] output{color:var(--color-accent)}
+.monitor-heading .chips{gap:var(--space-xs)}
+.chips button{min-height:28px;padding:4px 10px}
+.chips .selected,.chips [aria-pressed=true]{background:var(--color-accent);color:var(--color-on-accent);border-color:var(--color-accent)}
+.live-slider{height:28px}
+.live-slider::-webkit-slider-runnable-track{height:3px;border-radius:0;background:linear-gradient(to right,var(--color-ink) 0 var(--fill,0%),var(--color-control) var(--fill,0%) 100%)}
+.live-slider::-webkit-slider-thumb{width:12px;height:12px;margin-top:-4.5px;border:0;border-radius:0;background:var(--color-ink)}
+.live-slider:active::-webkit-slider-runnable-track{background:linear-gradient(to right,var(--color-accent) 0 var(--fill,0%),var(--color-control) var(--fill,0%) 100%)}
+.live-slider:hover::-webkit-slider-thumb,.live-slider:focus-visible::-webkit-slider-thumb{background:var(--color-accent)}
+.live-slider:disabled{cursor:default}
+.display-details>summary{font-size:var(--text-label);letter-spacing:.025em;padding:0 var(--space-xs);margin-right:calc(-1 * var(--space-xs))}
+.display-details>summary:hover,.more>summary:hover{color:var(--color-ink)}
+.disclosure>summary{font-weight:600}
+.disclosure>summary:hover{color:var(--color-accent)}
+.disclosure:last-child{border-bottom:0}
+.primary{background:var(--color-accent);border-color:var(--color-accent);color:var(--color-on-accent);min-height:40px;font-weight:700}
+.primary:hover{border-color:var(--color-accent)}
+.section-heading h2{font-size:var(--text-lg);font-weight:650}
+.section-heading button{border:var(--rule-width) solid var(--color-rule)}
+.schedule-row>button{background:transparent}
+.schedule-row>button:hover{color:var(--color-ink)}
+input[type=checkbox][role=switch]{appearance:none;position:relative;width:28px;height:16px;padding:0;flex-shrink:0;border:var(--rule-width) solid var(--color-control);border-radius:0;cursor:pointer;background:var(--color-raised)}
+input[type=checkbox][role=switch]::before{content:'';position:absolute;left:3px;top:3px;width:8px;height:8px;background:var(--color-muted)}
+input[type=checkbox][role=switch]:checked{border-color:var(--color-accent);background:var(--color-accent)}
+input[type=checkbox][role=switch]:checked::before{transform:translateX(12px);background:var(--color-on-accent)}
+input[type=checkbox][role=switch]:disabled{cursor:default}
+@media(max-width:375px){
+  .app-header{margin-inline:var(--space-lg);padding:0;gap:var(--space-xs)}
+  .app-header .tab{padding-inline:6px}
+  #content{padding-inline:var(--space-lg)}
+  .chips button{padding-inline:6px}
+  .monitor-heading{gap:var(--space-xs)}
+}

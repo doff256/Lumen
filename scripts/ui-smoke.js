@@ -45,8 +45,17 @@ app.whenReady().then(async () => {
   assert.deepEqual(errors, []);
   for (const width of [320,375,414,768]) {
     window.setSize(width,720); await new Promise(resolve=>setTimeout(resolve,80));
-    assert.ok(await run('document.documentElement.scrollWidth <= innerWidth'), `No horizontal overflow at ${width}`);
+    for (const tab of ['now', 'schedule', 'settings']) {
+      await run(`document.querySelector('[data-tab=${tab}]').click(); document.querySelectorAll('#${tab}-panel details').forEach(el => el.open = true)`);
+      await new Promise(resolve=>setTimeout(resolve,80));
+      assert.ok(await run('document.documentElement.scrollWidth <= innerWidth && document.querySelector("main").scrollWidth <= innerWidth'), `No horizontal overflow in ${tab} at ${width}`);
+      assert.ok(await run("[...document.querySelectorAll('button,input,select')].filter(el=>el.getClientRects().length).every(el=>el.getBoundingClientRect().right <= innerWidth && el.getBoundingClientRect().left >= 0)"), `Controls fit in ${tab} at ${width}`);
+    }
   }
+  window.setSize(432,720);
+  await run("document.querySelector('[data-tab=now]').click(); document.querySelectorAll('.display-details').forEach(el=>el.open=false)");
+  await new Promise(resolve=>setTimeout(resolve,100));
+  fs.writeFileSync('.tmp/fade.png',(await window.webContents.capturePage()).toPNG());
   console.log('UI smoke passed: sliders visible, collapsed fade, presets, autosave, solar/preset schedules, responsive widths; screenshot saved.');
   app.quit();
 }).catch(error => { console.error(error); app.exit(1); });

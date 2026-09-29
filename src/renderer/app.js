@@ -31,7 +31,7 @@ function bindSlider(input, output, id) {
   }
   input.addEventListener('pointerdown', () => { held = true; editing(); });
   for (const event of ['pointerup', 'pointercancel', 'blur']) input.addEventListener(event, () => { held = false; editing(); });
-  input.addEventListener('input', () => { output.textContent = input.value + '%'; pending = Number(input.value); editing(); clearTimeout(timer); timer = setTimeout(flush, Math.max(0, 125 - (Date.now() - last))); });
+  input.addEventListener('input', () => { output.textContent = input.value + '%'; input.style.setProperty('--fill', input.value + '%'); pending = Number(input.value); editing(); clearTimeout(timer); timer = setTimeout(flush, Math.max(0, 125 - (Date.now() - last))); });
 }
 function presets() {
   const chips = element('div', 'chips');
@@ -79,7 +79,7 @@ function renderMonitors() {
     const input = row.querySelector('.live-slider'); if (input.dataset.editing === 'true') continue;
     const monitor = state.monitors.find(m => m.id === row.dataset.id);
     const value = monitor ? monitor.brightness : Math.round(available.reduce((sum, m) => sum + m.brightness, 0) / Math.max(1, available.length));
-    input.value = value ?? 0; row.querySelector('output').textContent = monitor?.available === false ? '—' : value + '%';
+    input.value = value ?? 0; input.style.setProperty('--fill', input.value + '%'); row.querySelector('output').textContent = monitor?.available === false ? '—' : value + '%';
   }
   $('#empty-state').classList.toggle('hidden', state.monitors.length > 0); $('#start').disabled = !available.length;
   for (const button of $$('[data-preset]')) { button.disabled = !available.length; button.title = `${button.textContent}: ${state.settings[button.dataset.preset]}%`; }
@@ -173,5 +173,10 @@ function saveIdle() { const enabled = $('#idle-enabled').checked; $('#idle-optio
 $('#idle-enabled').addEventListener('change', saveIdle); $('#idle-minutes').addEventListener('change', saveIdle);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') window.lumen.hide(); });
 let resizeTimer;
-new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => window.lumen.resize?.(Math.ceil($('#content').getBoundingClientRect().height + 48)), 20); }).observe($('#content'));
+const popupObserver = new ResizeObserver(() => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => window.lumen.resize?.(Math.ceil($('#content').getBoundingClientRect().height + $('.app-header').getBoundingClientRect().height)), 20);
+});
+popupObserver.observe($('#content'));
+popupObserver.observe($('.app-header'));
 window.lumen.onState(render); window.lumen.getState().then(render).catch(err => error(err.message));

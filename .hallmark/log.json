@@ -2,6 +2,13 @@
   {
     "date": "2026-09-29",
     "macrostructure": "compact workbench",
+    "theme": "studied-DNA: ScapeSwitch user screenshot",
+    "enrichment": "none",
+    "brief": "User-requested ScapeSwitch direction: square controls, charcoal, fine lime edge, stronger readouts; slider-first layout retained"
+  },
+  {
+    "date": "2026-09-29",
+    "macrostructure": "compact workbench",
     "theme": "existing Lumen",
     "enrichment": "none",
     "brief": "Sliders first with progressive disclosure; native Windows typography preserved"

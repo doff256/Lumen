@@ -3,10 +3,12 @@
   "palette": "existing charcoal/lime",
   "motion": "none",
   "framework": "vanilla Electron renderer",
-  "scope": "single tray popup",
+  "scope": "single tray popup; ScapeSwitch reference styling",
+  "reference": "user-attached ScapeSwitch screenshot; colors estimated, existing Segoe UI retained",
   "preserve": [
     "font",
-    "brand palette"
+    "brand palette",
+    "slider-first layout and progressive disclosure"
   ],
   "files": [
     "src/renderer/index.html",
