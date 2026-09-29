@@ -1,6 +1,6 @@
 {
   "name": "lumen-brightness",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "A precise Windows tray brightness controller with timed ramps and schedules",
   "author": "Doff256",

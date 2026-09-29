@@ -1,11 +1,8 @@
-Lumen 1.2.0 fixes overnight schedule reconciliation and makes the popup focus on live brightness control.
+Lumen 1.2.1 brings the popup closer to the ScapeSwitch design direction.
 
-- On wake or restart, the latest missed schedule replaces an older saved ramp. Expired occurrences apply their final target immediately; failed writes retry. The 23:00 Night / 07:00 Work overnight case now restores Work.
-- Native System.Management replaces PowerShell for laptop brightness. Reusable per-display helper sessions cache DDC handles and min/max, isolate timeouts and recover automatically.
-- Working laptop panels remain available after external-display discovery failure. Unresponsive displays retain a disabled row and a visible warning.
-- Unique EDID manufacturer/product/serial identities survive port changes. Device paths remain the fallback for missing or duplicate serials. Exact path aliases migrate automatically; unambiguous legacy displays have a one-click migration.
-- Live sliders and Night/Work chips come first in a compact popup. Fade to… is collapsed, schedules read as sentences and reference presets, settings autosave, and calibration is under each display's Details.
-- Display limits clamp brightness immediately. Idle dimming's input-only behavior is documented in the app and README.
+- The popup now uses square controls, a charcoal surface, thin dividers, and lime accents inspired by ScapeSwitch.
+- Brightness readouts are more prominent. Live sliders and Night/Work presets remain visible without scrolling; fade controls stay collapsed until opened.
+- The README screenshot and description show the new appearance.
 
 Download the portable EXE or extract the ZIP and run Lumen.exe. Enable DDC/CI in external monitor settings.
 

@@ -4,11 +4,13 @@ A Windows 10/11 tray app for display brightness, gradual transitions, and schedu
 
 [Download the latest release](https://github.com/doff256/Lumen/releases/latest) · [MIT license](LICENSE)
 
-![Lumen popup with presets and transition controls](assets/screenshot.png)
+![Lumen's compact popup with brightness sliders, Night and Work presets, and a collapsed fade control](assets/screenshot.png)
 
 ## Use
 
 Run the portable EXE, then click Lumen in the system tray. Enable **DDC/CI** in an external monitor's own menu. Supported laptop panels use Windows WMI brightness control.
+
+The popup puts the live sliders first. Its square controls, charcoal background, thin dividers, and lime highlights follow the ScapeSwitch design direction. Night and Work sit beside **All displays**; fade controls open only when needed.
 
 - **Fade to…:** expand this row when you want a gradual change. Pick a target and 15 minutes, 30 minutes, 1 hour or a custom duration, then Start fade. Smooth perceptual pacing is the default; alternative pacing lives under More options. The popup opens compactly with sliders visible first and grows when you expand controls.
 - **Sliders:** brightness changes while dragging, with updates limited to approximately 125 ms and pending values coalesced. Individual sliders show hardware brightness; All displays applies each panel's calibration.
@@ -50,4 +52,4 @@ npm run dist -- --publish never
 
 Tests cover schedule catch-up, disconnected displays, adapter failures, concurrent/manual writes, calibration, presets, idle restoration, solar events, perceptual curves, helper timeouts, broken pipes and UTF-8. Real DDC compatibility still depends on the connected hardware.
 
-Push a version tag matching `package.json` (for example `v1.2.0`) to test, build the portable EXE and ZIP, and publish them to GitHub Releases. Manual workflow runs produce downloadable build artifacts without publishing a release.
+Push a version tag matching `package.json` (for example `v1.2.1`) to test, build the portable EXE and ZIP, and publish them to GitHub Releases. Manual workflow runs produce downloadable build artifacts without publishing a release.
