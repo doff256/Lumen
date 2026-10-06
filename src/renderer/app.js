@@ -5,6 +5,7 @@ let state = { monitors: [], ramps: [], schedules: [], settings: {}, limits: {} }
 let monitorSignature = '', scheduleSignature = '', migrationSignature = '', settingsLoaded = false;
 let duration = 15;
 const time = at => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(at));
+const shortcutLabel = value => (value || '').replace('Control', 'Ctrl').replaceAll('+', ' + ');
 function error(message) { $('#error').textContent = message || ''; $('#error').classList.toggle('hidden', !message); }
 async function call(action) { try { const result = await action; error(null); return result; } catch (err) { error(err.message || String(err)); throw err; } }
 function act(action) { call(action).catch(() => {}); }
@@ -114,6 +115,9 @@ function render(next) {
   state = next; renderMonitors(); renderSchedules();
   if (!settingsLoaded && state.settings) {
     settingsLoaded = true; $('#hotkeys').checked = state.settings.hotkeys; $('#idle-enabled').checked = state.settings.idleMinutes > 0;
+    $('#screen-off-enabled').checked = state.settings.screenOffEnabled;
+    $('#screen-off-shortcut').value = shortcutLabel(state.settings.screenOffShortcut);
+    $('#screen-off-shortcut').disabled = !state.settings.screenOffEnabled;
     for (const [id, key] of [['night-level','night'],['work-level','work'],['idle-level','idleBrightness']]) $('#' + id).value = state.settings[key];
     $('#idle-minutes').value = state.settings.idleMinutes || 5;
     $('#idle-options').classList.toggle('hidden', !$('#idle-enabled').checked);
@@ -164,19 +168,54 @@ $('#schedule-form').addEventListener('submit', async event => {
 });
 async function saveSettings(settings) {
   $('#settings-status').textContent = 'Saving…';
-  try { await call(window.lumen.configure({ settings })); $('#settings-status').textContent = 'Saved automatically.'; }
-  catch { $('#settings-status').textContent = 'Could not save. Check the values and try again.'; }
+  try { await call(window.lumen.configure({ settings })); $('#settings-status').textContent = 'Saved automatically.'; return true; }
+  catch { $('#settings-status').textContent = 'Could not save. Check the values and try again.'; return false; }
 }
 for (const [id,key] of [['night-level','night'],['work-level','work'],['idle-level','idleBrightness']]) $('#' + id).addEventListener('change', event => { if (event.target.reportValidity()) saveSettings({ [key]: Number(event.target.value) }); });
 $('#hotkeys').addEventListener('change', event => saveSettings({ hotkeys: event.target.checked }));
+$('#screen-off-enabled').addEventListener('change', async event => {
+  const enabled = event.target.checked;
+  $('#screen-off-shortcut').disabled = !enabled;
+  if (!await saveSettings({ screenOffEnabled: enabled })) {
+    event.target.checked = !enabled;
+    $('#screen-off-shortcut').disabled = enabled;
+  }
+});
+const offShortcut = $('#screen-off-shortcut');
+offShortcut.addEventListener('focus', () => {
+  offShortcut.value = 'Press shortcut…';
+  window.lumen.shortcutCapture(true).catch(err => error(err.message));
+});
+offShortcut.addEventListener('blur', () => {
+  offShortcut.value = shortcutLabel(state.settings.screenOffShortcut);
+  window.lumen.shortcutCapture(false).catch(err => error(err.message));
+});
+window.addEventListener('blur', () => offShortcut.blur());
+offShortcut.addEventListener('keydown', async event => {
+  event.preventDefault(); event.stopPropagation();
+  if (event.key === 'Escape') { offShortcut.blur(); return; }
+  const code = event.code;
+  const key = /^Key[A-Z]$/.test(code) ? code.slice(3) : /^F(?:[1-9]|1[0-2])$/.test(code) ? code : null;
+  if (!event.ctrlKey || !event.altKey || event.metaKey || !key) {
+    $('#settings-status').textContent = 'Press Ctrl + Alt and a letter or F1–F12. Shift is optional.';
+    return;
+  }
+  const shortcut = `Control+Alt+${event.shiftKey ? 'Shift+' : ''}${key}`;
+  await window.lumen.shortcutCapture(false).catch(err => error(err.message));
+  offShortcut.blur();
+  if (await saveSettings({ screenOffShortcut: shortcut })) offShortcut.value = shortcutLabel(shortcut);
+});
+$('#screen-off-now').addEventListener('click', () => act(window.lumen.turnOffDisplays()));
 function saveIdle() { const enabled = $('#idle-enabled').checked; $('#idle-options').classList.toggle('hidden', !enabled); if (!enabled || $('#idle-minutes').reportValidity()) saveSettings({ idleMinutes: enabled ? Number($('#idle-minutes').value) : 0 }); }
 $('#idle-enabled').addEventListener('change', saveIdle); $('#idle-minutes').addEventListener('change', saveIdle);
 document.addEventListener('keydown', event => { if (event.key === 'Escape') window.lumen.hide(); });
 let resizeTimer;
-const popupObserver = new ResizeObserver(() => {
+function resizePopup() {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => window.lumen.resize?.(Math.ceil($('#content').getBoundingClientRect().height + $('.app-header').getBoundingClientRect().height)), 20);
-});
+}
+const popupObserver = new ResizeObserver(resizePopup);
 popupObserver.observe($('#content'));
 popupObserver.observe($('.app-header'));
+document.addEventListener('toggle', resizePopup, true);
 window.lumen.onState(render); window.lumen.getState().then(render).catch(err => error(err.message));

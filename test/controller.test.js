@@ -6,6 +6,16 @@ const { Controller } = require('../src/controller');
 const { progress } = require('../src/curves');
 const { occurrencesBetween } = require('../src/schedule');
 
+test('display-off shortcut settings accept a safe chord and reject invalid input', async () => {
+  const f = fixture('2026-09-29T12:00:00');
+  assert.equal(f.controller.settings.screenOffShortcut, 'Control+Alt+O');
+  assert.equal(f.controller.settings.screenOffEnabled, true);
+  await f.controller.configure({ settings: { screenOffShortcut: 'Control+Alt+Shift+F12', screenOffEnabled: false } });
+  assert.equal(f.controller.settings.screenOffShortcut, 'Control+Alt+Shift+F12');
+  await assert.rejects(f.controller.configure({ settings: { screenOffShortcut: 'Control+Alt+Delete' } }), /Ctrl \+ Alt/);
+  assert.equal(f.controller.settings.screenOffShortcut, 'Control+Alt+Shift+F12');
+});
+
 test('overnight sleep applies expired morning target instead of saved night ramp', async () => {
   const f = fixture('2026-09-29T22:59:00'); await f.controller.refresh();
   for (const [time, target] of [['23:00',20], ['07:00',80]]) f.controller.addSchedule({ kind:'repeat', time, days:[0,1,2,3,4,5,6], monitorId:'all', target, durationMinutes:30, curve:'linear' });

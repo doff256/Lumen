@@ -37,6 +37,7 @@ public static class BrightnessNative {
     if (op == "wmi-list") return WmiList();
     if (op == "get") return Get(id);
     if (op == "set") { Set(id, value); return true; }
+    if (op == "display-off") { TurnOffDisplays(); return true; }
     throw new Exception("Unknown monitor command.");
   }
   static void Release() {
@@ -58,6 +59,7 @@ public static class BrightnessNative {
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
   [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool EnumDisplayDevices(string device, uint index, ref DisplayDevice info, uint flags);
   [DllImport("user32.dll")] private static extern bool EnumDisplayMonitors(IntPtr dc, IntPtr clip, MonitorProc callback, IntPtr data);
+  [DllImport("user32.dll", EntryPoint = "PostMessageW", SetLastError = true)] private static extern bool PostMessage(IntPtr window, uint message, IntPtr command, IntPtr state);
   [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetNumberOfPhysicalMonitorsFromHMONITOR(IntPtr monitor, out uint count);
   [DllImport("dxva2.dll", SetLastError = true)] private static extern bool GetPhysicalMonitorsFromHMONITOR(IntPtr monitor, uint count, [Out] PhysicalMonitor[] items);
   [DllImport("dxva2.dll", SetLastError = true)] private static extern bool DestroyPhysicalMonitors(uint count, PhysicalMonitor[] items);
@@ -65,6 +67,11 @@ public static class BrightnessNative {
   [DllImport("dxva2.dll", SetLastError = true)] private static extern bool SetMonitorBrightness(IntPtr monitor, uint value);
 
   [DllImport("dxva2.dll", SetLastError = true)] private static extern bool DestroyPhysicalMonitor(IntPtr monitor);
+  static void TurnOffDisplays() {
+    // WM_SYSCOMMAND / SC_MONITORPOWER / 2 requests Windows display power-off.
+    if (!PostMessage(new IntPtr(0xffff), 0x0112, new IntPtr(0xF170), new IntPtr(2)))
+      throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+  }
   public class Display {
     public string id { get; set; } public string edidId { get; set; }
     public string name { get; set; } public int brightness { get; set; }

@@ -43,7 +43,14 @@
       </form>
     </section>
     <section id="settings-panel" class="hidden">
-      <details class="disclosure"><summary>Keyboard shortcuts</summary><label class="toggle-line">Brightness shortcuts <input id="hotkeys" type="checkbox" role="switch"></label><p class="hint">Ctrl + Alt + ↑ / ↓ adjusts all displays by 5%.</p></details>
+      <details class="disclosure"><summary>Keyboard shortcuts</summary>
+        <label class="toggle-line">Brightness shortcuts <input id="hotkeys" type="checkbox" role="switch"></label>
+        <p class="hint">Ctrl + Alt + ↑ / ↓ adjusts all displays by 5%.</p>
+        <label class="toggle-line">Turn displays off <input id="screen-off-enabled" type="checkbox" role="switch"></label>
+        <label class="setting-line">Shortcut <input id="screen-off-shortcut" type="text" readonly aria-label="Shortcut to turn displays off" title="Click, then press Ctrl + Alt and a letter or F1–F12; Shift is optional"></label>
+        <button id="screen-off-now" type="button">Turn displays off now</button>
+        <p class="hint">Windows turns off all displays, without putting the PC to sleep. Mouse or keyboard activity wakes them. Your monitor may handle the power request differently.</p>
+      </details>
       <details class="disclosure"><summary>Night and Work</summary><label class="setting-line">Night <span><input id="night-level" type="number" min="0" max="100" required> %</span></label><label class="setting-line">Work <span><input id="work-level" type="number" min="0" max="100" required> %</span></label><p class="hint">Changing a preset also updates schedules that use it.</p></details>
       <details class="disclosure"><summary>Dim when idle</summary><label class="toggle-line">Dim while I’m away <input id="idle-enabled" type="checkbox" role="switch"></label><div id="idle-options"><label class="setting-line">After <span><input id="idle-minutes" type="number" min="1" max="1440" value="5"> minutes</span></label><label class="setting-line">Dim to <span><input id="idle-level" type="number" min="0" max="100" value="15"> %</span></label></div><p class="hint">Based on mouse and keyboard activity. Videos can dim too. Brightness returns when you interact.</p></details>
       <p id="settings-status" class="hint" role="status">Changes save automatically.</p>

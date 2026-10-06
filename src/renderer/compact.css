@@ -75,6 +75,9 @@ input[type=checkbox][role=switch]::before{content:'';position:absolute;left:3px;
 input[type=checkbox][role=switch]:checked{border-color:var(--color-accent);background:var(--color-accent)}
 input[type=checkbox][role=switch]:checked::before{transform:translateX(12px);background:var(--color-on-accent)}
 input[type=checkbox][role=switch]:disabled{cursor:default}
+#screen-off-shortcut{width:155px;text-align:center;cursor:pointer;font-variant-numeric:tabular-nums}
+#screen-off-shortcut:focus{border-color:var(--color-accent)}
+#screen-off-now{width:100%;margin-top:var(--space-xs)}
 @media(max-width:375px){
   .app-header{margin-inline:var(--space-lg);padding:0;gap:var(--space-xs)}
   .app-header .tab{padding-inline:6px}

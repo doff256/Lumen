@@ -1,4 +1,5 @@
 'use strict';
+const { DEFAULT_SCREEN_OFF_SHORTCUT, validScreenOffShortcut } = require('./shortcuts');
 
 const crypto = require('node:crypto');
 const { clamp, brightnessAt } = require('./curves');
@@ -14,7 +15,7 @@ class Controller {
     this.ramps = [];
     const saved = storage.load();
     this.schedules = saved.schedules || [];
-    this.settings = { hotkeys: true, idleMinutes: 0, idleBrightness: 15, night: 20, work: 80, ...saved.settings };
+    this.settings = { hotkeys: true, screenOffEnabled: true, screenOffShortcut: DEFAULT_SCREEN_OFF_SHORTCUT, idleMinutes: 0, idleBrightness: 15, night: 20, work: 80, ...saved.settings };
     this.limits = saved.limits || {};
     this.idle = false;
     this.ramps = (saved.ramps || []).filter(r => r && Number.isFinite(r.endsAt));
@@ -58,7 +59,8 @@ class Controller {
       for (const [key, max] of [['idleMinutes', 1440], ['idleBrightness', 100], ['night', 100], ['work', 100]]) {
         if (!Number.isFinite(next[key]) || next[key] < 0 || next[key] > max) throw Error('Enter valid brightness and idle settings.');
       }
-      this.settings = { ...next, hotkeys: !!next.hotkeys };
+      if (!validScreenOffShortcut(next.screenOffShortcut)) throw Error('Use Ctrl + Alt and a letter or F1–F12, with optional Shift.');
+      this.settings = { ...next, hotkeys: !!next.hotkeys, screenOffEnabled: !!next.screenOffEnabled };
     }
     if (limits) {
       if (!this.monitors.some(m => m.id === monitorId)) throw Error('Choose a connected display.');

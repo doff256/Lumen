@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('lumen', {
   toggleSchedule: id => invoke('schedule:toggle', id),
   preset: name => invoke('preset:apply', name),
   configure: args => invoke('settings:save', args),
+  shortcutCapture: active => invoke('shortcuts:capture', active),
+  turnOffDisplays: () => invoke('displays:off'),
   migrate: args => invoke('monitors:migrate', args),
   resize: height => invoke('window:resize', height),
   hide: () => invoke('window:hide')
